@@ -8,7 +8,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 public class Server extends Thread {
-    public static final int PORT_NUMBER = 8109;
+    //Port must be forwarded, allowed inbound rules in firewall
+    private static final int PORT_NUMBER = 8109;
     protected Socket socket;
 
     private Server(Socket socket) {
