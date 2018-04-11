@@ -1,16 +1,18 @@
+import network_data.AuthUser;
+
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Hashtable;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 
 public class Server extends Thread {
-    //Port must be forwarded, allowed inbound rules in firewall
-    private static final int PORT_NUMBER = 8109;
+    //Port must be forwarded
+    //Create separate ports for signing in and signing up
+    private static final int PORT_NUMBER = 3000;
     protected Socket socket;
+
+    private Hashtable<String, AuthUser> authUsers;
 
     private Server(Socket socket) {
         this.socket = socket;
@@ -21,20 +23,49 @@ public class Server extends Thread {
     public void run() {
         InputStream in = null;
         OutputStream out = null;
-
+        ObjectInputStream oin;
         try {
             in = this.socket.getInputStream();
             out = this.socket.getOutputStream();
-            BufferedReader br = new BufferedReader(new InputStreamReader(in));
+            oin = new ObjectInputStream(in);
 
-            String request;
-            while ((request = br.readLine()) != null) {
-                System.out.println("Message received:" + request);
-                request = request + '\n';
-                out.write(request.getBytes());
+            AuthUser a = (AuthUser) oin.readObject();
+
+            if (a.isLogin())
+            {
+                //Check if username exists
+                if(authUsers.containsKey(a.getUsername())){
+                    //Username does exist, compare passwords
+                    if( authUsers.get(a.getUsername()).getPassword().equals(a.getPassword()) ){
+                        //Success, return stuff
+
+                    }
+                }
+                else
+                {
+                    //username doesnt exist
+                }
+
+            } else { //sign up
+
+                //check existing username
+                if(authUsers.containsKey(a.getUsername()))
+                {
+                    //username already exists
+                }
+                else
+                    {//sign up success
+                    authUsers.put(a.getUsername() , a);
+                    //return success
+                }
             }
+
+            //System.out.println(a.toString());
+
         } catch (IOException var13) {
-            System.out.println("Unable to get streams from client");
+            var13.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         } finally {
             try {
                 in.close();
@@ -50,6 +81,7 @@ public class Server extends Thread {
 
     public static void main(String[] args) {
         ServerSocket server = null;
+
 
         try {
             server = new ServerSocket(PORT_NUMBER);
