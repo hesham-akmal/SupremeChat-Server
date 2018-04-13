@@ -8,5 +8,6 @@ public enum Command
     syncStatus,
     syncIP,
     success,
-    fail
+    fail,
+    heartbeat
 }

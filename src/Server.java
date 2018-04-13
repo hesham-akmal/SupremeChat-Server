@@ -14,8 +14,8 @@ import java.util.Set;
 
 public class Server extends Thread {
     //Port must be forwarded
-    //Create separate ports for signing in and signing up
-    private static final int PORT_NUMBER = 3000;
+    //Create separate ports for signing and heartbeats
+    private static final int SIGNING_PORT_NUMBER = 3000;
     protected Socket socket;
 
     private Server(Socket socket) {
@@ -99,6 +99,13 @@ public class Server extends Thread {
                         }
 
                         break;
+
+                    case heartbeat:
+
+                        oos.writeObject(Command.heartbeat);
+                        oos.flush();
+
+                        break;
                 }
             }
         } catch (EOFException e) {
@@ -121,7 +128,7 @@ public class Server extends Thread {
         testPrintAll();
 
         try {
-            server = new ServerSocket(PORT_NUMBER);
+            server = new ServerSocket(SIGNING_PORT_NUMBER);
 
             while (true) {
                 new Server(server.accept());
@@ -140,15 +147,15 @@ public class Server extends Thread {
     }
 
     private static void testPrintAll() {
-        System.out.println("Test print all authUsers:\n");
+        System.out.println("Test print all authUsers:");
         Set<String> keys = Database.instance.getAuthUsers().keySet();
         for (String key : keys) {
             AuthUser au = Database.instance.getAuthUsers().get(key);
             System.out.println("Value of " + key + " is: " + au.getUsername() + "," + au.getIP());
         }
-        System.out.println("\n\n");
+        System.out.println("\n");
 
-        System.out.println("Test print all friends:\n");
+        System.out.println("Test print all friends:");
         keys = Database.instance.getFriends().keySet();
         for (String key : keys) {
             Friend f = Database.instance.getFriends().get(key);
