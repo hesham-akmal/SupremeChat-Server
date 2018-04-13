@@ -1,18 +1,22 @@
+import javafx.beans.property.ReadOnlyLongProperty;
 import network_data.AuthUser;
+import network_data.Command;
+import network_data.Friend;
 
+import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Hashtable;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Set;
 
 
 public class Server extends Thread {
     //Port must be forwarded
-    //Create separate ports for signing in and signing up
-    private static final int PORT_NUMBER = 3000;
+    //Create separate ports for signing and heartbeats
+    private static final int SIGNING_PORT_NUMBER = 3000;
     protected Socket socket;
-
-    private Hashtable<String, AuthUser> authUsers;
 
     private Server(Socket socket) {
         this.socket = socket;
@@ -21,70 +25,110 @@ public class Server extends Thread {
     }
 
     public void run() {
-        InputStream in = null;
-        OutputStream out = null;
-        ObjectInputStream oin;
+        ObjectInputStream ois;
+        ObjectOutputStream oos;
+        Command command;
+        AuthUser a;
+
         try {
-            in = this.socket.getInputStream();
-            out = this.socket.getOutputStream();
-            oin = new ObjectInputStream(in);
+            //Creating ObjectOutputStream before ObjectInputStream IS A MUST to avoid blocking
+            oos = new ObjectOutputStream(this.socket.getOutputStream());
+            ois = new ObjectInputStream(this.socket.getInputStream());
 
-            AuthUser a = (AuthUser) oin.readObject();
+            while (true) {
 
-            if (a.isLogin())
-            {
-                //Check if username exists
-                if(authUsers.containsKey(a.getUsername())){
-                    //Username does exist, compare passwords
-                    if( authUsers.get(a.getUsername()).getPassword().equals(a.getPassword()) ){
-                        //Success, return stuff
+                System.out.println("Reading command from user");
+                //Read command from user
+                command = (Command) ois.readObject();
+                System.out.println("command read: " + command);
 
-                    }
-                }
-                else
-                {
-                    //username doesnt exist
-                }
+                switch (command) {
+                    case signIn:
 
-            } else { //sign up
+                        a = (AuthUser) ois.readObject();
 
-                //check existing username
-                if(authUsers.containsKey(a.getUsername()))
-                {
-                    //username already exists
-                }
-                else
-                    {//sign up success
-                    authUsers.put(a.getUsername() , a);
-                    //return success
+                        //Username does exist, compare passwords
+                        if (Database.instance.getAuthUsers().containsKey(a.getUsername())) {
+
+                            String pass1 = Database.instance.getAuthUsers().get(a.getUsername()).getPassword();
+                            String pass2 = a.getPassword();
+                            if (pass1.equals(pass2)) {
+                                //Success. Username found and pass correct
+                                System.out.println("Success. Username found and pass correct");
+                                oos.writeObject(Command.success);
+                                oos.flush();
+                                //Update friend in Database //////////
+                                String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
+                                Friend f = Database.instance.getFriends().get(a.getUsername());
+                                f.setStatus(Friend.Status.Online);
+                                f.setLastLogin(timeStamp);
+                                f.setIP(a.getIP());
+                            } else {
+                                //Fail. Username found but pass incorrect
+                                oos.writeObject(Command.fail);
+                                oos.flush();
+                                System.out.println("Fail. Username found but pass incorrect");
+                            }
+                        } else {
+                            //Username does not exists
+                            oos.writeObject(Command.fail);
+                            oos.flush();
+                            System.out.println("Username does not exists");
+                        }
+
+                        break;
+
+                    case signUp:
+
+                        a = (AuthUser) ois.readObject();
+
+                        //check existing username
+                        if (Database.instance.getAuthUsers().containsKey(a.getUsername())) {
+                            oos.writeObject(Command.fail);
+                            oos.flush();
+                            System.out.println("existing username");
+                        } else {//sign up success
+                            //Insert authUser in Database //////////
+                            Database.instance.addAuthUser(a);
+                            oos.writeObject(Command.success);
+                            oos.flush();
+                            System.out.println("created user");
+                            //Insert friend in Database //////////
+                            String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
+                            Database.instance.addFriend(new Friend(a.getUsername(), Friend.Status.Online, timeStamp, a.getIP()));
+                        }
+
+                        break;
+
+                    case heartbeat:
+
+                        oos.writeObject(Command.heartbeat);
+                        oos.flush();
+
+                        break;
                 }
             }
-
-            //System.out.println(a.toString());
-
-        } catch (IOException var13) {
-            var13.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (EOFException e) {
+            System.out.println("Probable user disconnection.");
+        } catch (Exception e) {
             e.printStackTrace();
         } finally {
             try {
-                in.close();
-                out.close();
+                System.out.println("Closing thread for " + this.socket.getInetAddress().toString());
                 this.socket.close();
             } catch (IOException var12) {
                 var12.printStackTrace();
             }
-
         }
-
     }
 
     public static void main(String[] args) {
         ServerSocket server = null;
 
+        testPrintAll();
 
         try {
-            server = new ServerSocket(PORT_NUMBER);
+            server = new ServerSocket(SIGNING_PORT_NUMBER);
 
             while (true) {
                 new Server(server.accept());
@@ -99,8 +143,23 @@ public class Server extends Thread {
             } catch (IOException var9) {
                 var9.printStackTrace();
             }
-
         }
+    }
 
+    private static void testPrintAll() {
+        System.out.println("Test print all authUsers:");
+        Set<String> keys = Database.instance.getAuthUsers().keySet();
+        for (String key : keys) {
+            AuthUser au = Database.instance.getAuthUsers().get(key);
+            System.out.println("Value of " + key + " is: " + au.getUsername() + "," + au.getIP());
+        }
+        System.out.println("\n");
+
+        System.out.println("Test print all friends:");
+        keys = Database.instance.getFriends().keySet();
+        for (String key : keys) {
+            Friend f = Database.instance.getFriends().get(key);
+            System.out.println("Value of " + key + " is: " + f.getUsername() + " , " + f.getLastLogin() + " , " + f.getStatus());
+        }
     }
 }

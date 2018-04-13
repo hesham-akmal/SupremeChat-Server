@@ -3,21 +3,15 @@ package network_data;
 import java.io.Serializable;
 
 public class AuthUser implements Serializable {
-
-    private boolean login;
+    private static final long serialVersionUID = 6529685098267757690L;
     private String username;
     private String password;
     private String IP;
 
-    public AuthUser(boolean login, String username, String password, String IP) {
-        this.login = login;
+    public AuthUser(String username, String password,String IP) {
         this.username = username;
         this.password = password;
         this.IP = IP;
-    }
-
-    public boolean isLogin() {
-        return login;
     }
 
     public String getUsername() {
