@@ -106,6 +106,15 @@ public class Server extends Thread {
                         oos.flush();
 
                         break;
+                    case search:
+                        //read search comman
+                        System.out.println(ois.readObject());
+                        //read query
+                        //TODO return result
+
+
+                        break;
+
                 }
             }
         } catch (EOFException e) {

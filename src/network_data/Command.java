@@ -9,5 +9,6 @@ public enum Command
     syncIP,
     success,
     fail,
-    heartbeat
+    heartbeat,
+    search
 }
