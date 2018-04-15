@@ -1,9 +1,7 @@
-import javafx.beans.property.ReadOnlyLongProperty;
 import network_data.AuthUser;
 import network_data.Command;
 import network_data.Friend;
 
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -104,17 +102,20 @@ public class Server extends Thread {
 
                         oos.writeObject(Command.heartbeat);
                         oos.flush();
-
                         break;
                     case search:
-                        //read search comman
-                        System.out.println(ois.readObject());
-                        //read query
-                        //TODO return result
+                        String query = (String) ois.readObject();
+                        System.out.println(query);
 
+                        if (Database.instance.getFriends().containsKey(query)) {
+                            oos.writeObject(Command.success);
+                            oos.flush();
 
+                            Friend f = Database.instance.getFriends().get(query);
+                            oos.writeObject(f);
+                            oos.flush();
+                        }
                         break;
-
                 }
             }
         } catch (EOFException e) {
