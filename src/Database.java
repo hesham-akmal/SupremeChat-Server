@@ -21,7 +21,7 @@ public class Database {
     public void addAuthUser(AuthUser authUser) {
         authUsers.put(authUser.getUsername(), authUser);
         try {
-            saveAuthUsers();
+            syncAuthUsers();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -30,9 +30,9 @@ public class Database {
     public Hashtable<String, AuthUser> getAuthUsers() {
         try {
             ois = new ObjectInputStream(new FileInputStream("authUsers.DB"));
-            Hashtable<String, AuthUser> au = (Hashtable<String, AuthUser>) ois.readObject();
+            authUsers = (Hashtable<String, AuthUser>) ois.readObject();
             ois.close();
-            return au;
+            return authUsers;
         } catch (EOFException e) {
             authUsers = new Hashtable<>();
             return authUsers;
@@ -42,7 +42,7 @@ public class Database {
         return null;
     }
 
-    private void saveAuthUsers() {
+    private void syncAuthUsers() {
         try {
             oos = new ObjectOutputStream(new FileOutputStream("authUsers.DB"));
             oos.writeObject(authUsers);
@@ -54,9 +54,9 @@ public class Database {
     }
 
     public void addFriend(Friend friend) {
-        friends.put(friend.getUsername(),friend);
+        friends.put(friend.getUsername(), friend);
         try {
-            saveFriends();
+            syncFriends();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -65,9 +65,9 @@ public class Database {
     public Hashtable<String, Friend> getFriends() {
         try {
             ois = new ObjectInputStream(new FileInputStream("friends.DB"));
-            Hashtable<String, Friend> fr = (Hashtable<String, Friend>) ois.readObject();
+            friends = (Hashtable<String, Friend>) ois.readObject();
             ois.close();
-            return fr;
+            return friends;
         } catch (EOFException e) {
             friends = new Hashtable<>();
             return friends;
@@ -77,7 +77,7 @@ public class Database {
         return null;
     }
 
-    private void saveFriends() {
+    public void syncFriends() {
         try {
             oos = new ObjectOutputStream(new FileOutputStream("friends.DB"));
             oos.writeObject(friends);
@@ -87,5 +87,4 @@ public class Database {
             e.printStackTrace();
         }
     }
-
 }

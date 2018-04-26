@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class Server extends Thread {
@@ -15,6 +17,59 @@ public class Server extends Thread {
     //Create separate ports for signing and heartbeats
     private static final int SIGNING_PORT_NUMBER = 3000;
     protected Socket socket;
+    private AuthUser authUser;
+
+    private boolean heartbeatCheck = true;
+    private int disconnectConsecutiveRetries = 1;
+    private Timer hearbeatChecktimer;
+
+    private void updateFriendOnline() {
+        String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
+        Friend f = Database.instance.getFriends().get(authUser.getUsername());
+        f.setStatus(Friend.Status.Online);
+        f.setLastLogin(timeStamp);
+        f.setIP(authUser.getIP());
+        Database.instance.syncFriends();
+    }
+
+    private void updateFriendOffline() {
+        if (authUser == null) {
+            return;
+        }
+        Friend f = Database.instance.getFriends().get(authUser.getUsername());
+        f.setStatus(Friend.Status.Offline);
+        Database.instance.syncFriends();
+    }
+
+    private void StartStatusCheck() {
+
+        hearbeatChecktimer = new Timer("hearbeatChecktimer");//create a new Timer
+
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (!heartbeatCheck)
+                    UserDisconnected();
+                else {
+                    heartbeatCheck = false;
+                    disconnectConsecutiveRetries = 1;
+                }
+            }
+        };
+
+        hearbeatChecktimer.scheduleAtFixedRate(timerTask, 1000, 2000);//this line starts the timer at the same time its executed
+    }
+
+    private void UserDisconnected() {
+        System.out.println("disconnectConsecutiveRetries: " + disconnectConsecutiveRetries);
+        if (disconnectConsecutiveRetries++ < 3)
+            return;
+
+        updateFriendOffline();
+        System.out.println(authUser.getUsername() + " went offline");
+        hearbeatChecktimer.cancel();
+        hearbeatChecktimer.purge();
+    }
 
     private Server(Socket socket) {
         this.socket = socket;
@@ -26,7 +81,6 @@ public class Server extends Thread {
         ObjectInputStream ois;
         ObjectOutputStream oos;
         Command command;
-        AuthUser a;
 
         try {
             //Creating ObjectOutputStream before ObjectInputStream IS A MUST to avoid blocking
@@ -35,32 +89,33 @@ public class Server extends Thread {
 
             while (true) {
 
-                System.out.println("Reading command from user");
+                System.out.print("\n Reading command from user.. ");
                 //Read command from user
                 command = (Command) ois.readObject();
-                System.out.println("command read: " + command);
+                System.out.print(" Command read: " + command);
 
                 switch (command) {
                     case signIn:
 
-                        a = (AuthUser) ois.readObject();
+                        authUser = (AuthUser) ois.readObject();
 
                         //Username does exist, compare passwords
-                        if (Database.instance.getAuthUsers().containsKey(a.getUsername())) {
+                        if (Database.instance.getAuthUsers().containsKey(authUser.getUsername())) {
 
-                            String pass1 = Database.instance.getAuthUsers().get(a.getUsername()).getPassword();
-                            String pass2 = a.getPassword();
+                            String pass1 = Database.instance.getAuthUsers().get(authUser.getUsername()).getPassword();
+                            String pass2 = authUser.getPassword();
                             if (pass1.equals(pass2)) {
                                 //Success. Username found and pass correct
-                                System.out.println("Success. Username found and pass correct");
+                                System.out.println("\nSuccess. Username found and pass correct");
                                 oos.writeObject(Command.success);
                                 oos.flush();
                                 //Update friend in Database //////////
                                 String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
-                                Friend f = Database.instance.getFriends().get(a.getUsername());
+                                Friend f = Database.instance.getFriends().get(authUser.getUsername());
                                 f.setStatus(Friend.Status.Online);
                                 f.setLastLogin(timeStamp);
-                                f.setIP(a.getIP());
+                                f.setIP(authUser.getIP());
+                                StartStatusCheck();
                             } else {
                                 //Fail. Username found but pass incorrect
                                 oos.writeObject(Command.fail);
@@ -78,32 +133,52 @@ public class Server extends Thread {
 
                     case signUp:
 
-                        a = (AuthUser) ois.readObject();
+                        authUser = (AuthUser) ois.readObject();
 
                         //check existing username
-                        if (Database.instance.getAuthUsers().containsKey(a.getUsername())) {
+                        if (Database.instance.getAuthUsers().containsKey(authUser.getUsername())) {
                             oos.writeObject(Command.fail);
                             oos.flush();
                             System.out.println("existing username");
                         } else {//sign up success
                             //Insert authUser in Database //////////
-                            Database.instance.addAuthUser(a);
+                            Database.instance.addAuthUser(authUser);
                             oos.writeObject(Command.success);
                             oos.flush();
                             System.out.println("created user");
                             //Insert friend in Database //////////
                             String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
-                            Database.instance.addFriend(new Friend(a.getUsername(), Friend.Status.Online, timeStamp, a.getIP()));
+                            Database.instance.addFriend(new Friend(authUser.getUsername(), Friend.Status.Online, timeStamp, authUser.getIP()));
+                            StartStatusCheck();
                         }
 
                         break;
 
                     case heartbeat:
 
-                        oos.writeObject(Command.heartbeat);
-                        oos.flush();
+                        try {
+
+                            if (authUser == null) {
+                                System.out.println("authUser == null");
+                                continue;
+                            }
+
+                            if (ois.readObject() == Command.heartbeat) {
+                                System.out.print(" , " + authUser.getUsername() + " is online\n");
+                                updateFriendOnline();
+                                heartbeatCheck = true;
+                            }
+
+                        } catch (Exception e) {
+                        }
+
                         break;
+
                     case search:
+
+                        oos.writeObject(Command.success);
+                        oos.flush();
+
                         String query = (String) ois.readObject();
                         System.out.println(query);
 
