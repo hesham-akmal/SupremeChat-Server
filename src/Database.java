@@ -21,7 +21,7 @@ public class Database {
     public void addAuthUser(AuthUser authUser) {
         authUsers.put(authUser.getUsername(), authUser);
         try {
-            syncAuthUsers();
+            SaveAuthUsersToDB();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -42,7 +42,7 @@ public class Database {
         return null;
     }
 
-    private void syncAuthUsers() {
+    private void SaveAuthUsersToDB() {
         try {
             oos = new ObjectOutputStream(new FileOutputStream("authUsers.DB"));
             oos.writeObject(authUsers);
@@ -56,7 +56,7 @@ public class Database {
     public void addFriend(Friend friend) {
         friends.put(friend.getUsername(), friend);
         try {
-            syncFriends();
+            SaveFriendsToDB();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -77,7 +77,7 @@ public class Database {
         return null;
     }
 
-    public void syncFriends() {
+    public void SaveFriendsToDB() {
         try {
             oos = new ObjectOutputStream(new FileOutputStream("friends.DB"));
             oos.writeObject(friends);

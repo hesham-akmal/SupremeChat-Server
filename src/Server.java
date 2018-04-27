@@ -6,10 +6,7 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 
 public class Server extends Thread {
@@ -26,10 +23,10 @@ public class Server extends Thread {
     private void updateFriendOnline() {
         String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
         Friend f = Database.instance.getFriends().get(authUser.getUsername());
-        f.setStatus(Friend.Status.Online);
+        f.setOnline(true);
         f.setLastLogin(timeStamp);
-        f.setIP(authUser.getIP());
-        Database.instance.syncFriends();
+        f.setIP(socket.getInetAddress().toString());
+        Database.instance.SaveFriendsToDB();
     }
 
     private void updateFriendOffline() {
@@ -37,8 +34,8 @@ public class Server extends Thread {
             return;
         }
         Friend f = Database.instance.getFriends().get(authUser.getUsername());
-        f.setStatus(Friend.Status.Offline);
-        Database.instance.syncFriends();
+        f.setOnline(false);
+        Database.instance.SaveFriendsToDB();
     }
 
     private void StartStatusCheck() {
@@ -77,6 +74,10 @@ public class Server extends Thread {
         this.start();
     }
 
+    private void LoggedInSuccessfully() {
+        StartStatusCheck();
+    }
+
     public void run() {
         ObjectInputStream ois;
         ObjectOutputStream oos;
@@ -109,7 +110,7 @@ public class Server extends Thread {
                                 System.out.println("\nSuccess. Username found and pass correct");
                                 oos.writeObject(Command.success);
                                 oos.flush();
-                                StartStatusCheck();
+                                LoggedInSuccessfully();
                             } else {
                                 //Fail. Username found but pass incorrect
                                 oos.writeObject(Command.fail);
@@ -128,7 +129,7 @@ public class Server extends Thread {
                     case signInAuto:
 
                         authUser = (AuthUser) ois.readObject();
-                        StartStatusCheck();
+                        LoggedInSuccessfully();
 
                         break;
 
@@ -149,8 +150,8 @@ public class Server extends Thread {
                             System.out.println("created user");
                             //Insert friend in Database //////////
                             String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
-                            Database.instance.addFriend(new Friend(authUser.getUsername(), Friend.Status.Online, timeStamp, authUser.getIP()));
-                            StartStatusCheck();
+                            Database.instance.addFriend(new Friend(authUser.getUsername(), true, timeStamp, socket.getInetAddress().toString()));
+                            LoggedInSuccessfully();
                         }
 
                         break;
@@ -162,7 +163,7 @@ public class Server extends Thread {
                             break;
                         }
 
-                        System.out.print(" , " + authUser.getUsername() + " is online\n");
+                        //System.out.print(" , " + authUser.getUsername() + " is online\n");
                         updateFriendOnline();
                         heartbeatCheck = true;
 
@@ -184,6 +185,24 @@ public class Server extends Thread {
                             oos.writeObject(Command.fail);
                             oos.flush();
                         }
+
+                        break;
+
+                    case sendFriends:
+
+                        //receive user friend list
+                        Hashtable<String, Friend> user_friend_list = (Hashtable<String, Friend>) ois.readObject();
+
+                        //create new friend list, fill it with the user friends, and their latest IPs
+                        Hashtable<String, Friend> friend_list = new Hashtable<>();
+                        for (Map.Entry<String, Friend> fr : user_friend_list.entrySet()) {
+                            Friend f = Database.instance.getFriends().get(fr.getKey());
+                            friend_list.put(f.getUsername(), f);
+                        }
+
+                        //Send friend list with latest IPs to user
+                        oos.writeObject(friend_list);
+                        oos.flush();
 
                         break;
                 }
@@ -227,17 +246,11 @@ public class Server extends Thread {
     }
 
     private static void testPrintAll() {
-        System.out.println("Test print all authUsers:");
-        Set<String> keys = Database.instance.getAuthUsers().keySet();
-        for (String key : keys) {
-            AuthUser au = Database.instance.getAuthUsers().get(key);
-            System.out.println("Value of " + key + " is: " + au.getUsername() + "," + au.getIP());
-        }
         System.out.println("Test print all friends:");
-        keys = Database.instance.getFriends().keySet();
+        Set<String> keys = Database.instance.getFriends().keySet();
         for (String key : keys) {
             Friend f = Database.instance.getFriends().get(key);
-            System.out.println("Value of " + key + " is: " + f.getUsername() + " , " + f.getLastLogin() + " , " + f.getStatus());
+            System.out.println("Value of " + key + " is: " + f.getUsername() + " , " + f.getLastLogin() + " , " + f.getIP());
         }
     }
 }

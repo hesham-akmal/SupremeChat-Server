@@ -6,12 +6,10 @@ public class AuthUser implements Serializable {
     private static final long serialVersionUID = 6529685098267757690L;
     private String username;
     private String password;
-    private String IP;
 
-    public AuthUser(String username, String password,String IP) {
+    public AuthUser(String username, String password) {
         this.username = username;
         this.password = password;
-        this.IP = IP;
     }
 
     public String getUsername() {
@@ -20,9 +18,5 @@ public class AuthUser implements Serializable {
 
     public String getPassword() {
         return password;
-    }
-
-    public String getIP() {
-        return IP;
     }
 }
