@@ -3,9 +3,8 @@ package network_data;
 public enum Command
 {
     signIn,
+    signInAuto,
     signUp,
-    syncLastLogin,
-    syncStatus,
     syncIP,
     success,
     fail,

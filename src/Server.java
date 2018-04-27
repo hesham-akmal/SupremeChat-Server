@@ -57,7 +57,7 @@ public class Server extends Thread {
             }
         };
 
-        hearbeatChecktimer.scheduleAtFixedRate(timerTask, 1000, 2000);//this line starts the timer at the same time its executed
+        hearbeatChecktimer.scheduleAtFixedRate(timerTask, 1000, 2000);
     }
 
     private void UserDisconnected() {
@@ -109,12 +109,6 @@ public class Server extends Thread {
                                 System.out.println("\nSuccess. Username found and pass correct");
                                 oos.writeObject(Command.success);
                                 oos.flush();
-                                //Update friend in Database //////////
-                                String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
-                                Friend f = Database.instance.getFriends().get(authUser.getUsername());
-                                f.setStatus(Friend.Status.Online);
-                                f.setLastLogin(timeStamp);
-                                f.setIP(authUser.getIP());
                                 StartStatusCheck();
                             } else {
                                 //Fail. Username found but pass incorrect
@@ -128,6 +122,13 @@ public class Server extends Thread {
                             oos.flush();
                             System.out.println("Username does not exists");
                         }
+
+                        break;
+
+                    case signInAuto:
+
+                        authUser = (AuthUser) ois.readObject();
+                        StartStatusCheck();
 
                         break;
 
@@ -156,28 +157,18 @@ public class Server extends Thread {
 
                     case heartbeat:
 
-                        try {
-
-                            if (authUser == null) {
-                                System.out.println("authUser == null");
-                                continue;
-                            }
-
-                            if (ois.readObject() == Command.heartbeat) {
-                                System.out.print(" , " + authUser.getUsername() + " is online\n");
-                                updateFriendOnline();
-                                heartbeatCheck = true;
-                            }
-
-                        } catch (Exception e) {
+                        if (authUser == null) {
+                            System.out.println("\nauthUser == null");
+                            break;
                         }
+
+                        System.out.print(" , " + authUser.getUsername() + " is online\n");
+                        updateFriendOnline();
+                        heartbeatCheck = true;
 
                         break;
 
                     case search:
-
-                        oos.writeObject(Command.success);
-                        oos.flush();
 
                         String query = (String) ois.readObject();
                         System.out.println(query);
@@ -189,7 +180,11 @@ public class Server extends Thread {
                             Friend f = Database.instance.getFriends().get(query);
                             oos.writeObject(f);
                             oos.flush();
+                        } else {
+                            oos.writeObject(Command.fail);
+                            oos.flush();
                         }
+
                         break;
                 }
             }
@@ -238,8 +233,6 @@ public class Server extends Thread {
             AuthUser au = Database.instance.getAuthUsers().get(key);
             System.out.println("Value of " + key + " is: " + au.getUsername() + "," + au.getIP());
         }
-        System.out.println("\n");
-
         System.out.println("Test print all friends:");
         keys = Database.instance.getFriends().keySet();
         for (String key : keys) {
