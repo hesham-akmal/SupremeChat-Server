@@ -9,5 +9,6 @@ public enum Command
     fail,
     heartbeat,
     search,
-    sendFriends
+    sendFriends,
+    sendMsg
 }

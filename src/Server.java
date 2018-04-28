@@ -1,6 +1,7 @@
 import network_data.AuthUser;
 import network_data.Command;
 import network_data.Friend;
+import network_data.MessagePacket;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -13,12 +14,18 @@ public class Server extends Thread {
     //Port must be forwarded
     //Create separate ports for signing and heartbeats
     private static final int SIGNING_PORT_NUMBER = 3000;
+
+    private static HashMap<String, ObjectOutputStream> allOOS = new HashMap<>();
+
     protected Socket socket;
     private AuthUser authUser;
 
     private boolean heartbeatCheck = true;
     private int disconnectConsecutiveRetries = 1;
     private Timer hearbeatChecktimer;
+
+    private ObjectInputStream ois;
+    private ObjectOutputStream oos;
 
     private void updateFriendOnline() {
         String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
@@ -75,12 +82,11 @@ public class Server extends Thread {
     }
 
     private void LoggedInSuccessfully() {
+        allOOS.put(this.authUser.getUsername(), this.oos);
         StartStatusCheck();
     }
 
     public void run() {
-        ObjectInputStream ois;
-        ObjectOutputStream oos;
         Command command;
 
         try {
@@ -203,6 +209,25 @@ public class Server extends Thread {
                         //Send friend list with latest IPs to user
                         oos.writeObject(friend_list);
                         oos.flush();
+
+                        break;
+
+                    case sendMsg:
+
+                        try {
+                            MessagePacket mp = (MessagePacket) ois.readObject();
+
+                            ObjectOutputStream ReceiverOOS = allOOS.get(mp.getReceiver());
+
+                            System.out.println("RECEIVER: " + mp.getReceiver());
+                            System.out.println(ReceiverOOS);
+                            ReceiverOOS.writeObject(mp);
+                            ReceiverOOS.flush();
+
+                        } catch (Exception v) {
+                            v.printStackTrace();
+                            System.out.println("MSG NOT SEND!");
+                        }
 
                         break;
                 }
