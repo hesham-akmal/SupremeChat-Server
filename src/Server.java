@@ -203,12 +203,9 @@ public class Server extends Thread {
                         Hashtable<String, Friend> friend_list = new Hashtable<>();
                         for (Map.Entry<String, Friend> fr : user_friend_list.entrySet()) {
 
-                            if( !Database.instance.getFriends().containsKey(fr.getKey()) )
-                            {
+                            if (!Database.instance.getFriends().containsKey(fr.getKey())) {
                                 System.out.println("Friend: " + fr.getKey() + " Not found in DB!");
-                            }
-                            else
-                            {
+                            } else {
                                 Friend f = Database.instance.getFriends().get(fr.getKey());
                                 friend_list.put(f.getUsername(), f);
                             }
@@ -235,6 +232,40 @@ public class Server extends Thread {
                         } catch (Exception v) {
                             v.printStackTrace();
                             System.out.println("MSG NOT SEND!");
+                        }
+
+                        break;
+
+                    case createNewGroup:
+
+
+                        ArrayList<String> selectedFriendsNames = (ArrayList<String>) ois.readObject();
+
+                        ArrayList<Friend> selectedFriends = new ArrayList<>();
+
+                        for (String FriendName : selectedFriendsNames)
+                            if (Database.instance.getFriends().containsKey(FriendName))
+                                selectedFriends.add(Database.instance.getFriends().get(FriendName));
+
+                        for (Friend f : selectedFriends) {
+                            try {
+                                if (!f.getOnline()) {
+                                    System.out.println(f.getUsername() + ":invitation not sent.");
+                                    continue;
+                                }
+
+                                ObjectOutputStream ReceiverOOS = allOOS.get(f.getUsername());
+
+                                ReceiverOOS.writeObject(Command.createNewGroup);
+                                ReceiverOOS.flush();
+
+                                ReceiverOOS.writeObject(selectedFriends);
+                                ReceiverOOS.flush();
+
+                                System.out.println(f.getUsername() + ":invitation sent.");
+                            } catch (Exception v) {
+                                System.out.println(f.getUsername() + ":invitation not sent.");
+                            }
                         }
 
                         break;

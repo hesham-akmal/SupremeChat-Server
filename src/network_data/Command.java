@@ -10,5 +10,6 @@ public enum Command
     heartbeat,
     search,
     sendFriends,
-    sendMsg
+    sendMsg,
+    createNewGroup
 }
