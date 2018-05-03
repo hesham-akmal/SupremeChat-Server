@@ -96,10 +96,10 @@ public class Server extends Thread {
 
             while (true) {
 
-                System.out.print("\n Reading command from user.. ");
+                System.out.print("Reading command. ");
                 //Read command from user
                 command = (Command) ois.readObject();
-                System.out.print(" Command read: " + command);
+                System.out.println("Command read: " + command);
 
                 switch (command) {
                     case signIn:
@@ -113,7 +113,7 @@ public class Server extends Thread {
                             String pass2 = authUser.getPassword();
                             if (pass1.equals(pass2)) {
                                 //Success. Username found and pass correct
-                                System.out.println("\nSuccess. Username found and pass correct");
+                                System.out.println("Success. Username found and pass correct");
                                 oos.writeObject(Command.success);
                                 oos.flush();
                                 LoggedInSuccessfully();
@@ -202,8 +202,16 @@ public class Server extends Thread {
                         //create new friend list, fill it with the user friends, and their latest IPs
                         Hashtable<String, Friend> friend_list = new Hashtable<>();
                         for (Map.Entry<String, Friend> fr : user_friend_list.entrySet()) {
-                            Friend f = Database.instance.getFriends().get(fr.getKey());
-                            friend_list.put(f.getUsername(), f);
+
+                            if( !Database.instance.getFriends().containsKey(fr.getKey()) )
+                            {
+                                System.out.println("Friend: " + fr.getKey() + " Not found in DB!");
+                            }
+                            else
+                            {
+                                Friend f = Database.instance.getFriends().get(fr.getKey());
+                                friend_list.put(f.getUsername(), f);
+                            }
                         }
 
                         //Send friend list with latest IPs to user
@@ -275,7 +283,7 @@ public class Server extends Thread {
         Set<String> keys = Database.instance.getFriends().keySet();
         for (String key : keys) {
             Friend f = Database.instance.getFriends().get(key);
-            System.out.println("Value of " + key + " is: " + f.getUsername() + " , " + f.getLastLogin() + " , " + f.getIP());
+            System.out.println(f.getUsername() + " , " + f.getLastLogin() + " , " + f.getIP() + " , " + f.getOnline());
         }
     }
 }
