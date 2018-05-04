@@ -244,23 +244,34 @@ public class Server extends Thread {
                         try {
                             MessagePacket mp = (MessagePacket) ois.readObject();
 
-                            for (int i =0; i < mp.getListOfRecievers().size(); i++){
-                                ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
-                                System.out.println("RECEIVER: " + mp.getReceiver());
-                                System.out.println(ReceiverOOS);
-                                ReceiverOOS.writeObject(Command.sendMsg);
-                                ReceiverOOS.flush();
+                            for (int i = 0; i < mp.getListOfRecievers().size(); i++) {
 
-                                ReceiverOOS.writeObject(mp);
-                                ReceiverOOS.flush();
+                                Friend f = null;
+
+                                try {
+                                    f = Database.instance.getFriends().get(mp.getListOfRecievers().get(i));
+                                    if (!f.getOnline()) {
+                                        System.out.println(f.getUsername() + ": Offline , invitation not sent.");
+                                        continue;
+                                    }
+
+                                    ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
+                                    System.out.println("RECEIVER: " + mp.getReceiver());
+                                    System.out.println(ReceiverOOS);
+                                    ReceiverOOS.writeObject(Command.sendMsg);
+                                    ReceiverOOS.flush();
+
+                                    ReceiverOOS.writeObject(mp);
+                                    ReceiverOOS.flush();
+                                } catch (Exception v) {
+                                    if (f != null)
+                                        System.out.println(f.getUsername() + ": Offline , invitation not sent.");
+                                }
                             }
-
-
                         } catch (Exception v) {
                             v.printStackTrace();
                             System.out.println("MSG NOT SEND!");
                         }
-
                         break;
 
                     case createNewGroup:
@@ -304,6 +315,8 @@ public class Server extends Thread {
             e.printStackTrace();
         } finally {
             try {
+                if (authUser.getUsername() != null)
+                    allOOS.remove(authUser.getUsername());
                 System.out.println("Closing thread for " + this.socket.getInetAddress().toString());
                 this.socket.close();
             } catch (IOException var12) {
@@ -337,8 +350,23 @@ public class Server extends Thread {
     }
 
     private static void testPrintAll() {
+
+
+       /* System.out.println("Test print all authUSERS:");
+
+        Set<String> keys = Database.instance.getAuthUsers().keySet();
+
+        for (String key : keys) {
+            AuthUser a = Database.instance.getAuthUsers().get(key);
+            System.out.println(a.getUsername());
+        }
+*/
+
+
         System.out.println("Test print all friends:");
+
         Set<String> keys = Database.instance.getFriends().keySet();
+
         for (String key : keys) {
             Friend f = Database.instance.getFriends().get(key);
             System.out.println(f.getUsername() + " , " + f.getLastLogin() + " , " + f.getIP() + " , " + f.getOnline());
