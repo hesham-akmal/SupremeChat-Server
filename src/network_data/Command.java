@@ -11,5 +11,6 @@ public enum Command
     search,
     sendFriends,
     sendMsg,
-    createNewGroup
+    createNewGroup,
+    sendGroupMsg
 }

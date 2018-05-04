@@ -226,6 +226,10 @@ public class Server extends Thread {
 
                             System.out.println("RECEIVER: " + mp.getReceiver());
                             System.out.println(ReceiverOOS);
+
+                            ReceiverOOS.writeObject(Command.sendMsg);
+                            ReceiverOOS.flush();
+
                             ReceiverOOS.writeObject(mp);
                             ReceiverOOS.flush();
 
