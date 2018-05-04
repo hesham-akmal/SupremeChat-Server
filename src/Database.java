@@ -14,8 +14,8 @@ public class Database {
     public static Database instance = new Database();
 
     private Database() {
-        authUsers = getAuthUsers();
-        friends = getFriends();
+        getAuthUsers();
+        getFriends();
     }
 
     public void addAuthUser(AuthUser authUser) {

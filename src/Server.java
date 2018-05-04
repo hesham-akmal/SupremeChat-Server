@@ -30,6 +30,12 @@ public class Server extends Thread {
     private void updateFriendOnline() {
         String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
         Friend f = Database.instance.getFriends().get(authUser.getUsername());
+
+        if (f == null){
+            System.out.println("HANDLED NULL 105");
+            return;
+        }
+
         f.setOnline(true);
         f.setLastLogin(timeStamp);
         f.setIP(socket.getInetAddress().toString());
@@ -38,6 +44,7 @@ public class Server extends Thread {
 
     private void updateFriendOffline() {
         if (authUser == null) {
+            System.out.println("HANDLED NULL 104");
             return;
         }
         Friend f = Database.instance.getFriends().get(authUser.getUsername());
@@ -105,6 +112,7 @@ public class Server extends Thread {
                     case signIn:
 
                         authUser = (AuthUser) ois.readObject();
+                        System.out.println("XXX: " + authUser.getUsername());
 
                         //Username does exist, compare passwords
                         if (Database.instance.getAuthUsers().containsKey(authUser.getUsername())) {
@@ -135,6 +143,7 @@ public class Server extends Thread {
                     case signInAuto:
 
                         authUser = (AuthUser) ois.readObject();
+                        System.out.println("XXX: " + authUser.getUsername());
                         LoggedInSuccessfully();
 
                         break;
@@ -142,6 +151,7 @@ public class Server extends Thread {
                     case signUp:
 
                         authUser = (AuthUser) ois.readObject();
+                        System.out.println("XXX: " + authUser.getUsername());
 
                         //check existing username
                         if (Database.instance.getAuthUsers().containsKey(authUser.getUsername())) {
@@ -151,12 +161,15 @@ public class Server extends Thread {
                         } else {//sign up success
                             //Insert authUser in Database //////////
                             Database.instance.addAuthUser(authUser);
-                            oos.writeObject(Command.success);
-                            oos.flush();
-                            System.out.println("created user");
+
                             //Insert friend in Database //////////
                             String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
                             Database.instance.addFriend(new Friend(authUser.getUsername(), true, timeStamp, socket.getInetAddress().toString()));
+
+                            //
+                            oos.writeObject(Command.success);
+                            oos.flush();
+                            System.out.println("created user");
                             LoggedInSuccessfully();
                         }
 
@@ -165,7 +178,7 @@ public class Server extends Thread {
                     case heartbeat:
 
                         if (authUser == null) {
-                            System.out.println("\nauthUser == null");
+                            System.out.println("HANDLED NULL 106");
                             break;
                         }
 
@@ -254,6 +267,7 @@ public class Server extends Thread {
                                         System.out.println(f.getUsername() + ": Offline , invitation not sent.");
                                         continue;
                                     }
+                                    if (mp.getSender().equals(f.getUsername())) continue;
 
                                     ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
                                     System.out.println("RECEIVER: " + mp.getReceiver());
@@ -315,10 +329,10 @@ public class Server extends Thread {
             e.printStackTrace();
         } finally {
             try {
-                if (authUser.getUsername() != null)
-                    allOOS.remove(authUser.getUsername());
                 System.out.println("Closing thread for " + this.socket.getInetAddress().toString());
+                updateFriendOffline();
                 this.socket.close();
+                allOOS.remove(authUser.getUsername());
             } catch (IOException var12) {
                 var12.printStackTrace();
             }
@@ -352,7 +366,7 @@ public class Server extends Thread {
     private static void testPrintAll() {
 
 
-       /* System.out.println("Test print all authUSERS:");
+        System.out.println("Test print all authUSERS:");
 
         Set<String> keys = Database.instance.getAuthUsers().keySet();
 
@@ -360,12 +374,11 @@ public class Server extends Thread {
             AuthUser a = Database.instance.getAuthUsers().get(key);
             System.out.println(a.getUsername());
         }
-*/
 
 
         System.out.println("Test print all friends:");
 
-        Set<String> keys = Database.instance.getFriends().keySet();
+        keys = Database.instance.getFriends().keySet();
 
         for (String key : keys) {
             Friend f = Database.instance.getFriends().get(key);
