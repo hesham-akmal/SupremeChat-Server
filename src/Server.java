@@ -240,6 +240,29 @@ public class Server extends Thread {
 
                         break;
 
+                    case sendGroupMsg:
+                        try {
+                            MessagePacket mp = (MessagePacket) ois.readObject();
+
+                            for (int i =0; i < mp.getListOfRecievers().size(); i++){
+                                ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
+                                System.out.println("RECEIVER: " + mp.getReceiver());
+                                System.out.println(ReceiverOOS);
+                                ReceiverOOS.writeObject(Command.sendMsg);
+                                ReceiverOOS.flush();
+
+                                ReceiverOOS.writeObject(mp);
+                                ReceiverOOS.flush();
+                            }
+
+
+                        } catch (Exception v) {
+                            v.printStackTrace();
+                            System.out.println("MSG NOT SEND!");
+                        }
+
+                        break;
+
                     case createNewGroup:
 
 
