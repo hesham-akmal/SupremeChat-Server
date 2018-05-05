@@ -36,16 +36,17 @@ public class Server extends Thread {
 
         try {
             f = Database.instance.getFriends().get(authUser.getUsername());
-        } catch (Exception e)
-        {
+
+            f.setOnline(true);
+            f.setLastLogin(timeStamp);
+            f.setIP(socket.getInetAddress().toString());
+            Database.instance.SaveFriendsToDB();
+
+        } catch (Exception e) {
             System.out.println("HANDLED NULL 105");
             return;
         }
 
-        f.setOnline(true);
-        f.setLastLogin(timeStamp);
-        f.setIP(socket.getInetAddress().toString());
-        Database.instance.SaveFriendsToDB();
     }
 
     private void updateFriendOffline() {
@@ -271,13 +272,10 @@ public class Server extends Thread {
 
                                 try {
                                     f = Database.instance.getFriends().get(mp.getListOfRecievers().get(i));
-                                    if (!f.getOnline())
-                                    {
+                                    if (!f.getOnline()) {
                                         System.out.println(f.getUsername() + ": Offline , continue forloop;");
                                         continue;
-                                    }
-                                    else
-                                    {
+                                    } else {
                                         System.out.println(f.getUsername() + ": Online.;");
                                     }
 
