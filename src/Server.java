@@ -32,9 +32,12 @@ public class Server extends Thread {
 
     private void updateFriendOnline() {
         String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
-        Friend f = Database.instance.getFriends().get(authUser.getUsername());
+        Friend f = null;
 
-        if (f == null){
+        try {
+            f = Database.instance.getFriends().get(authUser.getUsername());
+        } catch (Exception e)
+        {
             System.out.println("HANDLED NULL 105");
             return;
         }
@@ -258,6 +261,7 @@ public class Server extends Thread {
                         break;
 
                     case sendGroupMsg:
+
                         try {
                             MessagePacket mp = (MessagePacket) ois.readObject();
 
@@ -267,23 +271,28 @@ public class Server extends Thread {
 
                                 try {
                                     f = Database.instance.getFriends().get(mp.getListOfRecievers().get(i));
-                                    if (!f.getOnline()) {
-                                        System.out.println(f.getUsername() + ": Offline , invitation not sent.");
+                                    if (!f.getOnline())
+                                    {
+                                        System.out.println(f.getUsername() + ": Offline , continue forloop;");
                                         continue;
                                     }
-                                    if (mp.getSender().equals(f.getUsername())) continue;
+                                    else
+                                    {
+                                        System.out.println(f.getUsername() + ": Online.;");
+                                    }
 
                                     ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
-                                    System.out.println("Receiver " + i + " : " + ReceiverOOS);
 
                                     ReceiverOOS.writeObject(Command.sendMsg);
                                     ReceiverOOS.flush();
+
+                                    System.out.println("Receiver " + i + " : " + ReceiverOOS);
 
                                     ReceiverOOS.writeObject(mp);
                                     ReceiverOOS.flush();
                                 } catch (Exception v) {
                                     if (f != null)
-                                        System.out.println(f.getUsername() + ": Offline , invitation not sent.");
+                                        System.out.println(f.getUsername() + ": Offline , msg not sent.");
                                 }
                             }
                         } catch (Exception v) {
