@@ -27,6 +27,9 @@ public class Server extends Thread {
     private ObjectInputStream ois;
     private ObjectOutputStream oos;
 
+    private static int threadCount = 0;
+    private int threadNumber;
+
     private void updateFriendOnline() {
         String timeStamp = new SimpleDateFormat("dd/MM/yyyy HH:mm a").format(Calendar.getInstance().getTime());
         Friend f = Database.instance.getFriends().get(authUser.getUsername());
@@ -84,6 +87,7 @@ public class Server extends Thread {
 
     private Server(Socket socket) {
         this.socket = socket;
+        threadNumber = threadCount++;
         System.out.println("New client connected from " + socket.getInetAddress().getHostAddress());
         this.start();
     }
@@ -103,7 +107,7 @@ public class Server extends Thread {
 
             while (true) {
 
-                System.out.print("Reading command. ");
+                System.out.print("Thread: " + threadNumber + ", Reading command. ");
                 //Read command from user
                 command = (Command) ois.readObject();
                 System.out.println("Command read: " + command);
@@ -270,8 +274,8 @@ public class Server extends Thread {
                                     if (mp.getSender().equals(f.getUsername())) continue;
 
                                     ObjectOutputStream ReceiverOOS = allOOS.get(mp.getListOfRecievers().get(i));
-                                    System.out.println("RECEIVER: " + mp.getReceiver());
-                                    System.out.println(ReceiverOOS);
+                                    System.out.println("Receiver " + i + " : " + ReceiverOOS);
+
                                     ReceiverOOS.writeObject(Command.sendMsg);
                                     ReceiverOOS.flush();
 
