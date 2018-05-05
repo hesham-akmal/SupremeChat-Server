@@ -268,6 +268,9 @@ public class Server extends Thread {
 
                             for (int i = 0; i < mp.getListOfRecievers().size(); i++) {
 
+                                if (mp.getListOfRecievers().get(i).equalsIgnoreCase(mp.getSender()))
+                                    continue;
+
                                 Friend f = null;
 
                                 try {
