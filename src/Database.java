@@ -11,6 +11,8 @@ public class Database {
     private static Hashtable<String, AuthUser> authUsers;
     private static Hashtable<String, Friend> friends;
 
+    public static final Object NetLock = new Object();
+
     public static Database instance = new Database();
 
     private Database() {
@@ -28,28 +30,32 @@ public class Database {
     }
 
     public Hashtable<String, AuthUser> getAuthUsers() {
-        try {
-            ois = new ObjectInputStream(new FileInputStream("authUsers.DB"));
-            authUsers = (Hashtable<String, AuthUser>) ois.readObject();
-            ois.close();
-            return authUsers;
-        } catch (EOFException e) {
-            authUsers = new Hashtable<>();
-            return authUsers;
-        } catch (Exception e) {
-            e.printStackTrace();
+        synchronized (NetLock) {
+            try {
+                ois = new ObjectInputStream(new FileInputStream("authUsers.DB"));
+                authUsers = (Hashtable<String, AuthUser>) ois.readObject();
+                ois.close();
+                return authUsers;
+            } catch (EOFException e) {
+                authUsers = new Hashtable<>();
+                return authUsers;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
-        return null;
     }
 
     private void SaveAuthUsersToDB() {
-        try {
-            oos = new ObjectOutputStream(new FileOutputStream("authUsers.DB"));
-            oos.writeObject(authUsers);
-            oos.flush();
-            oos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        synchronized (NetLock) {
+            try {
+                oos = new ObjectOutputStream(new FileOutputStream("authUsers.DB"));
+                oos.writeObject(authUsers);
+                oos.flush();
+                oos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -63,28 +69,32 @@ public class Database {
     }
 
     public Hashtable<String, Friend> getFriends() {
-        try {
-            ois = new ObjectInputStream(new FileInputStream("friends.DB"));
-            friends = (Hashtable<String, Friend>) ois.readObject();
-            ois.close();
-            return friends;
-        } catch (EOFException e) {
-            friends = new Hashtable<>();
-            return friends;
-        } catch (Exception e) {
-            e.printStackTrace();
+        synchronized (NetLock) {
+            try {
+                ois = new ObjectInputStream(new FileInputStream("friends.DB"));
+                friends = (Hashtable<String, Friend>) ois.readObject();
+                ois.close();
+                return friends;
+            } catch (EOFException e) {
+                friends = new Hashtable<>();
+                return friends;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
         }
-        return null;
     }
 
     public void SaveFriendsToDB() {
-        try {
-            oos = new ObjectOutputStream(new FileOutputStream("friends.DB"));
-            oos.writeObject(friends);
-            oos.flush();
-            oos.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+        synchronized (NetLock) {
+            try {
+                oos = new ObjectOutputStream(new FileOutputStream("friends.DB"));
+                oos.writeObject(friends);
+                oos.flush();
+                oos.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
